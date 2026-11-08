@@ -1,0 +1,104 @@
+{
+  "output": "my_reel.mp4",
+  "full_seconds": 2.0,
+  "cold_open": {
+    "effect": 2,
+    "from": 2.0,
+    "seconds": 1.4,
+    "lines": [
+      "Claude",
+      "edited",
+      "this."
+    ]
+  },
+  "effects": [
+    {
+      "name": "glass-widgets",
+      "desc": "frosted glass widgets around your head",
+      "raw": "clips/glass_raw.mp4",
+      "edited": "clips/glass_effects.mp4",
+      "offset": 0.2
+    },
+    {
+      "name": "led-sign",
+      "desc": "an LED sign that types out above you",
+      "raw": "clips/led_raw.mp4",
+      "edited": "clips/led_effects.mp4",
+      "offset": 1.1
+    },
+    {
+      "name": "orbit",
+      "desc": "your reels orbit around you in 3D",
+      "raw": "clips/orbit_raw.mp4",
+      "edited": "clips/orbit_effects.mp4",
+      "offset": 0.3
+    },
+    {
+      "name": "liquid-glass-graph",
+      "desc": "a glass graph that climbs behind you",
+      "raw": "clips/graph_raw.mp4",
+      "edited": "clips/graph_effects.mp4",
+      "offset": 1.05
+    },
+    {
+      "name": "over-the-shoulder-zoom",
+      "desc": "stat cards land beside your head",
+      "raw": "clips/shoulder_raw.mp4",
+      "edited": "clips/shoulder_effects.mp4",
+      "offset": 0.75
+    },
+    {
+      "name": "checklist",
+      "desc": "a live checklist of what Claude did",
+      "raw": "clips/checklist_raw.mp4",
+      "edited": "clips/checklist_effects.mp4",
+      "offset": 0.5
+    }
+  ],
+  "greeting": "Evening, Ray",
+  "cta_word": "EFFECT",
+  "cta_pill": "for every effect’s prompt",
+  "more_label": "+43 more effects",
+  "grid": [
+    {
+      "label": "glass-widgets",
+      "clip": "clips/glass-widgets_effects.mp4",
+      "t": 2.6
+    },
+    {
+      "label": "spotlight",
+      "clip": "clips/spotlight_effects.mp4",
+      "t": 2.8
+    },
+    {
+      "label": "orbit",
+      "clip": "clips/orbit_effects.mp4",
+      "t": 2.5
+    },
+    {
+      "label": "led-sign",
+      "clip": "clips/led-sign_effects.mp4",
+      "t": 3.0
+    },
+    {
+      "label": "checklist",
+      "clip": "clips/checklist_effects.mp4",
+      "t": 3.9
+    },
+    {
+      "label": "liquid-glass",
+      "clip": "clips/liquid-glass-graph_effects.mp4",
+      "t": 4.6
+    },
+    {
+      "label": "cover-star",
+      "clip": "clips/cover-star_effects.mp4",
+      "t": 1.3
+    },
+    {
+      "label": "comment-box",
+      "clip": "clips/comment-box_effects.mp4",
+      "t": 1.8
+    }
+  ]
+}

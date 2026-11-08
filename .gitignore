@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.mp4
+*.mov
+*.wav
+check_*.jpg
+effects/models/rvm_*.onnx
+effects/scripts/fx_private.py
