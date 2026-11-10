@@ -126,6 +126,9 @@ These were added on top of the starter effects to fix what looked off on real fo
 | `checklist` | `span=2.9` | Seconds over which the ticks land, so the last tick hits your gesture |
 | `spotlight` | `flicker=0`, `lift=0.8` | Turn off the neon flicker-on, or lower the word so your head covers part of it |
 | `cover-star` | `mast_y=0.15` | Fixed masthead height (pair with a tighter crop so your head overlaps it) |
+| `huge-strike` | `width=0.8` | How much of the frame width the word may fill, so long words never run off the edge |
+| `phone-fan` | `guard=1` | Fade phones where they would cover your face (off by default, since the fan sits at your chest) |
+| `red-collage` | `size=0.095`, `guard=0` | Smaller slam-in lines, and keep them solid where they sit at your neck |
 | `comment-box` | `lock=1`, `avatar_color=#FDB827` | Pin the comment sheet in place, set the avatar color (letter comes from `handle`) |
 
 Hands in front of a card: render the effect, then run `.venv/bin/python scripts/hands_front.py <original> <with_effect> <out>`.

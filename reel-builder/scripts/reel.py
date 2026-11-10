@@ -241,6 +241,7 @@ class Reel:
         self.co_lines = co.get('lines', ['Claude', 'edited', 'this.'])
         self.co_fx = int(co.get('effect', 0))
         self.co_at = float(co.get('from', 2.0))
+        self.co_y = float(co.get('y', 360)); self.co_gap = float(co.get('gap', 165)); self.co_step = float(co.get('stagger', 0.15))
         self.end0 = self.open + len(self.fx) * self.cyc
         self.end_len = float(cfg.get('end_seconds', 5.6))
         self.dur = self.end0 + self.end_len
@@ -249,9 +250,7 @@ class Reel:
         self.greet = cfg.get('greeting', 'Evening, Ray')
         self.reply1 = cfg.get('reply_line1', f'Comment “{self.word}” and I’ll send you')
         self.reply2 = cfg.get('reply_line2', 'the prompts')
-        grid = cfg.get('grid', [])[:8]
-        self.grid = [(g.get('label', ''), still(P(g['clip']), float(g.get('t', 1.0)))) for g in grid]
-        self.gb0 = self.grid_page(False); self.gb1 = self.grid_page(True)
+        self.grid_setup(cfg.get('grid', [])[:8], P)
 
     # ---- timings ----
     @staticmethod
@@ -299,7 +298,7 @@ class Reel:
             im = c.resize((int(W * z), int(H * z)), Image.LANCZOS)
             c = im.crop(((im.width - W) // 2, (im.height - H) // 2, (im.width - W) // 2 + W, (im.height - H) // 2 + H))
             for i, txt in enumerate(self.co_lines):
-                t0 = 0.05 + 0.15 * i
+                t0 = 0.05 + self.co_step * i
                 if t < t0: continue
                 a = eout((t - t0) / 0.1)
                 lay = Image.new('RGBA', (W, 200), (0, 0, 0, 0)); ld = ImageDraw.Draw(lay)
@@ -307,7 +306,7 @@ class Reel:
                 ImageDraw.Draw(lay).text((W / 2, 100), txt, font=F(XB, 150), fill=(ORANGE + (255,)) if i == len(self.co_lines) - 1 else (255, 255, 255, 255), anchor='mm')
                 s = 1.5 - 0.5 * a
                 lay = lay.resize((int(W * s), int(200 * s)), Image.LANCZOS)
-                c.alpha_composite(lay, (int(W / 2 - lay.width / 2), int(360 + i * 165 - lay.height / 2)))
+                c.alpha_composite(lay, (int(W / 2 - lay.width / 2), int(self.co_y + i * self.co_gap - lay.height / 2)))
             return c
         u = (t - hold) / 0.3
         fr = f['reader'].get(int(max(0, self.co_at + hold - u * 3.0) * FPS)).astype(np.float32)
@@ -321,32 +320,121 @@ class Reel:
         if u > 0.75: bg.alpha_composite(Image.new('RGBA', (W, H), BG + (int(255 * (u - 0.75) / 0.25),)))
         return bg
 
-    def grid_page(self, final):
-        c = Image.new('RGB', (W, H), (30, 30, 29)); d = ImageDraw.Draw(c)
-        tw8, gap = 244, 14; th8 = int(tw8 * 16 / 9); gx0 = (W - (4 * tw8 + 3 * gap)) / 2; band = 300
-        row1 = H / 2 - band / 2 - gap - th8; row2 = H / 2 + band / 2 + gap
-        for i, (label, im) in enumerate(self.grid):
-            x = gx0 + (i % 4) * (tw8 + gap); y = row1 if i < 4 else row2
-            r = cover(im, tw8, th8, 14); c.paste(r.convert('RGB'), (int(x), int(y)), r)
-            if label:
-                f = F(SB, 21)
-                d.rounded_rectangle([x + 8, y + th8 - 46, x + 8 + d.textlength(label, font=f) + 22, y + th8 - 10], 11, fill=(0, 0, 0))
-                d.text((x + 19, y + th8 - 28), label, font=f, fill=(255, 255, 255), anchor='lm')
-        cy = H / 2; cfg = self.cfg
-        if not final:
-            d.text((W / 2, cy - 45), cfg.get('grid_title', 'Effect of the Day'), font=F(XB, 92), fill=(255, 255, 255), anchor='mm')
-            d.text((W / 2, cy + 40), cfg.get('grid_subtitle', f'{len(self.grid)} effects  ·  made in Claude'), font=F(M, 38), fill=ORANGE, anchor='mm')
-        else:
-            d.text((W / 2, cy - 70), f'Comment “{self.word}”', font=F(XB, 100), fill=(255, 255, 255), anchor='mm')
-            f = F(SB, 44); tx = cfg.get('cta_pill', 'for every effect’s prompt'); tw = d.textlength(tx, font=f)
-            d.rounded_rectangle([W / 2 - tw / 2 - 30, cy + 2, W / 2 + tw / 2 + 30, cy + 74], 14, fill=ORANGE)
-            d.text((W / 2, cy + 38), tx, font=f, fill=(255, 255, 255), anchor='mm')
-            more = cfg.get('more_label')
-            if more:
-                f2 = F(M, 32); tw2 = d.textlength(more, font=f2)
-                d.rounded_rectangle([W / 2 - tw2 / 2 - 24, cy + 92, W / 2 + tw2 / 2 + 24, cy + 140], 24, fill=(44, 40, 37), outline=ORANGE, width=2)
-                d.text((W / 2, cy + 116), more, font=f2, fill=(230, 226, 218), anchor='mm')
-        return np.asarray(c)
+    # ---- end grid: live tiles, warm glow, animated CTA ----
+    def grid_setup(self, grid, P):
+        cfg = self.cfg; tw, gap = 244, 14; th = int(tw * 16 / 9); band = 430
+        gx0 = (W - (4 * tw + 3 * gap)) / 2; row1 = H / 2 - band / 2 - gap - th; row2 = H / 2 + band / 2 + gap
+        self.g_tw, self.g_th = tw, th
+        self.g_pos = [(gx0 + (i % 4) * (tw + gap), row1 if i < 4 else row2) for i in range(len(grid))]
+        self.g_frames, self.g_labels = [], []
+        for g in grid:
+            cap = cv2.VideoCapture(P(g['clip'])); cap.set(cv2.CAP_PROP_POS_FRAMES, int(float(g.get('t', 1.0)) * FPS)); fr = []
+            while len(fr) < int(FPS * 2.4):
+                ok, f = cap.read()
+                if not ok: break
+                f = cv2.resize(f, (tw * 2, int(tw * 2 * f.shape[0] / f.shape[1])), interpolation=cv2.INTER_AREA)
+                fr.append(np.asarray(cover(Image.fromarray(cv2.cvtColor(f, cv2.COLOR_BGR2RGB)), tw, th, 18)))
+            cap.release()
+            if not fr: raise SystemExit(f"Could not read grid clip {g['clip']}")
+            self.g_frames.append(fr + fr[::-1][1:-1])
+            lab = g.get('label', '')
+            if lab:
+                f = F(SB, 21); lw = int(ImageDraw.Draw(Image.new('L', (1, 1))).textlength(lab, font=f)) + 24
+                im = Image.new('RGBA', (lw, 36), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+                d.rounded_rectangle([0, 0, lw - 1, 35], 18, fill=(10, 10, 10, 200)); d.text((12, 18), lab, font=f, fill=(255, 255, 255), anchor='lm')
+                self.g_labels.append(im)
+            else: self.g_labels.append(None)
+        # background: deep charcoal, warm glow behind the CTA, fine grain
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        r = np.sqrt(((xx - W / 2) / (W * 0.62)) ** 2 + ((yy - H / 2) / (H * 0.32)) ** 2)
+        glow = np.clip(1 - r, 0, 1) ** 2.2
+        bg = np.array([17, 16, 15], np.float32) + glow[..., None] * np.array([96, 46, 26], np.float32)
+        bg += np.random.default_rng(3).normal(0, 2.2, (H, W, 1))
+        self.g_bg = Image.fromarray(np.clip(bg, 0, 255).astype(np.uint8)).convert('RGBA')
+        sh = Image.new('RGBA', (tw + 80, th + 80), (0, 0, 0, 0))
+        ImageDraw.Draw(sh).rounded_rectangle([40, 52, tw + 40, th + 52], 20, fill=(0, 0, 0, 170))
+        self.g_shadow = np.asarray(sh.filter(ImageFilter.GaussianBlur(16))).copy()
+        rim = Image.new('RGBA', (tw, th), (0, 0, 0, 0))
+        ImageDraw.Draw(rim).rounded_rectangle([0, 0, tw - 1, th - 1], 18, outline=(255, 255, 255, 46), width=2)
+        self.g_rim = rim
+        # centre text layers
+        def txt(t, font, fill, glow_col=None, gr=26):
+            d0 = ImageDraw.Draw(Image.new('L', (1, 1))); bb = d0.textbbox((0, 0), t, font=font)
+            w, h = bb[2] - bb[0] + gr * 4, bb[3] - bb[1] + gr * 4
+            im = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+            if glow_col:
+                g2 = Image.new('RGBA', (w, h), (0, 0, 0, 0)); ImageDraw.Draw(g2).text((gr * 2 - bb[0], gr * 2 - bb[1]), t, font=font, fill=glow_col)
+                im.alpha_composite(g2.filter(ImageFilter.GaussianBlur(gr)))
+            ImageDraw.Draw(im).text((gr * 2 - bb[0], gr * 2 - bb[1]), t, font=font, fill=fill); return im
+        self.t_title = txt(cfg.get('grid_title', 'Effect of the Day'), F(XB, 92), (255, 255, 255, 255), (0, 0, 0, 160), 14)
+        self.t_sub = txt(cfg.get('grid_subtitle', f'{len(grid)} effects  ·  made in Claude'), F(M, 38), ORANGE + (255,), None, 4)
+        self.t_comment = txt('Comment', F(SB, 66), (236, 232, 224, 255), (0, 0, 0, 170), 12)
+        self.t_word = txt(f'“{self.word}”', F(XB, 168), (255, 255, 255, 255), ORANGE + (230,), 30)
+        wm = txt(f'“{self.word}”', F(XB, 168), (255, 255, 255, 255), None, 30); self.t_word_mask = np.asarray(wm)[..., 3].astype(np.float32) / 255
+        pf = F(SB, 42); ptx = cfg.get('cta_pill', 'for every effect’s prompt'); pw = int(ImageDraw.Draw(Image.new('L', (1, 1))).textlength(ptx, font=pf)) + 64
+        pill = Image.new('RGBA', (pw, 74), (0, 0, 0, 0)); d = ImageDraw.Draw(pill)
+        d.rounded_rectangle([0, 0, pw - 1, 73], 37, fill=ORANGE + (255,)); d.text((pw / 2, 37), ptx, font=pf, fill=(255, 255, 255), anchor='mm')
+        self.t_pill = pill
+        self.t_head = txt(cfg.get('grid_header', 'CLAUDE VIDEO EFFECTS').upper(), F(B, 34), (236, 232, 224, 230), None, 4)
+        hw = self.t_head.width
+        dot = Image.new('RGBA', (hw + 60, self.t_head.height), (0, 0, 0, 0)); ImageDraw.Draw(dot).ellipse([4, dot.height / 2 - 9, 22, dot.height / 2 + 9], fill=ORANGE + (255,))
+        dot.alpha_composite(self.t_head, (52, 0)); self.t_head = dot
+        self.t_foot = txt(cfg.get('grid_footer', '@raycfu  ·  follow for more'), F(M, 34), (200, 196, 188, 230), None, 4)
+        self.g_top = row1; self.g_bot = row2 + th
+        more = cfg.get('more_label'); self.t_more = None
+        if more:
+            mf = F(M, 30); mw = int(ImageDraw.Draw(Image.new('L', (1, 1))).textlength(more, font=mf)) + 48
+            m = Image.new('RGBA', (mw, 48), (0, 0, 0, 0)); d = ImageDraw.Draw(m)
+            d.rounded_rectangle([0, 0, mw - 1, 47], 24, fill=(255, 255, 255, 22), outline=(255, 255, 255, 70), width=2)
+            d.text((mw / 2, 24), more, font=mf, fill=(236, 232, 224), anchor='mm'); self.t_more = m
+
+    @staticmethod
+    def _put(c, im, cx, cy, s=1.0, a=1.0):
+        if a <= 0.01 or s <= 0.01: return
+        if abs(s - 1) > 0.004: im = im.resize((max(1, int(im.width * s)), max(1, int(im.height * s))), Image.BILINEAR)
+        if a < 0.999:
+            arr = np.asarray(im).copy(); arr[..., 3] = (arr[..., 3] * a).astype(np.uint8); im = Image.fromarray(arr)
+        c.alpha_composite(im, (int(cx - im.width / 2), int(cy - im.height / 2)))
+
+    def grid_frame(self, gt, cta):
+        c = self.g_bg.copy(); fi = int(gt * FPS); tw, th = self.g_tw, self.g_th
+        dim = 1 - 0.42 * eout(cta)
+        for i, (x, y) in enumerate(self.g_pos):
+            k = eout((gt - 0.045 * i) / 0.4)
+            if k <= 0: continue
+            s = 0.88 + 0.12 * k; drift = (1 - k) * 40 * (1 if i < 4 else -1)
+            sh = self.g_shadow.copy(); sh[..., 3] = (sh[..., 3] * k * (0.6 + 0.4 * dim)).astype(np.uint8)
+            self._put(c, Image.fromarray(sh), x + tw / 2, y + th / 2 + 12 + drift, s)
+            arr = self.g_frames[i][fi % len(self.g_frames[i])].copy()
+            if dim < 0.999: arr[..., :3] = (arr[..., :3] * dim).astype(np.uint8)
+            tile = Image.fromarray(arr); tile.alpha_composite(self.g_rim)
+            lab = self.g_labels[i]
+            if lab: tile.alpha_composite(lab, (10, th - 46))
+            self._put(c, tile, x + tw / 2, y + th / 2 + drift, s, k)
+        kh = eout((gt - 0.55) / 0.4)
+        self._put(c, self.t_head, W / 2, self.g_top - 70 + 16 * (1 - kh), 1, kh)
+        self._put(c, self.t_foot, W / 2, self.g_bot + 70 - 16 * (1 - kh), 1, kh)
+        cy = H / 2
+        pre = 1 - eout(cta / 0.5)
+        if pre > 0:
+            k1 = eout((gt - 0.35) / 0.35)
+            self._put(c, self.t_title, W / 2, cy - 40 - 30 * (1 - k1), 1, k1 * pre)
+            self._put(c, self.t_sub, W / 2, cy + 48, 1, eout((gt - 0.5) / 0.35) * pre)
+        if cta > 0:
+            k1 = eout(cta / 0.45); k2 = eout((cta - 0.12) / 0.5); k3 = eout((cta - 0.35) / 0.45); k4 = eout((cta - 0.5) / 0.45)
+            self._put(c, self.t_comment, W / 2, cy - 152 + 20 * (1 - k1), 1, k1)
+            wy = cy - 38; ws = 1.35 - 0.35 * k2
+            self._put(c, self.t_word, W / 2, wy, ws, k2)
+            sp = (gt * 0.9) % 1.6  # shine sweep across the word, repeating
+            if k2 >= 1 and sp < 0.7:
+                m = self.t_word_mask; hh, ww = m.shape; xs = np.arange(ww, dtype=np.float32)
+                band = np.clip(1 - np.abs(xs - (-0.2 + 1.4 * sp / 0.7) * ww + (np.arange(hh)[:, None] * 0.35)) / (ww * 0.06), 0, 1)
+                sh = np.zeros((hh, ww, 4), np.uint8); sh[..., :3] = 255; sh[..., 3] = (m * band * 150).astype(np.uint8)
+                self._put(c, Image.fromarray(sh), W / 2, wy)
+            pulse = 1 + 0.025 * math.sin(gt * 6.0) * k3
+            self._put(c, self.t_pill, W / 2, cy + 88 + 24 * (1 - k3), (0.9 + 0.1 * k3) * pulse, k3)
+            if self.t_more is not None: self._put(c, self.t_more, W / 2, cy + 168 + 20 * (1 - k4), 1, k4)
+        return np.asarray(c.convert('RGB'))
 
     def end(self, lt):
         c = Image.new('RGBA', (W, H), BG + (255,)); d = ImageDraw.Draw(c); topbar(d)
@@ -370,12 +458,12 @@ class Reel:
         reply_bar(c)
         D0 = r0 + 0.75; D1, Z0, Z1 = D0 + 0.45, D0 + 0.95, D0 + 1.2
         if lt < D0: return c
-        g = self.gb1 if lt > Z1 + 0.55 else self.gb0
+        gt = lt - D0; cta = clamp((lt - Z1 - 0.3) / 1.0)
+        g = self.grid_frame(gt, cta)
         if lt < Z0:
             c.alpha_composite(rounded(card_img(g, CW, CH, clamp((lt - D0) / (D1 - D0))), 22), (CX0, 470)); return c
+        if lt >= Z1: return Image.fromarray(g).convert('RGBA')
         zoom_to_full(c, g, CX0, 470, einout((lt - Z0) / (Z1 - Z0)))
-        if Z1 + 0.5 < lt < Z1 + 0.62:
-            c.alpha_composite(Image.new('RGBA', (W, H), (255, 255, 255, int(90 * (1 - (lt - Z1 - 0.5) / 0.12)))))
         return c
 
     def frame(self, t):

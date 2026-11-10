@@ -856,12 +856,12 @@ def fx_red_collage(c, e):
     s = 1.12 - 0.12 * ease_out(c.lt / 0.4)
     place(c, w, c.W / 2, max(w.height * 0.42, c.fy - c.fw * 1.05), s, 0, clamp(c.lt / 0.12) * al, behind=True)
     lines = e.o.get('lines', 'ONE CLIP.|51 EFFECTS.|ZERO APPS.').split('|')
-    size = cached(e, 'sz', lambda: lines_fit(lines, c.W * 0.8, 'uib', int(c.W * 0.14)))
-    y = max(c.H * 0.5, c.fy + c.fw * 1.55)
+    size = cached(e, 'sz', lambda: lines_fit(lines, c.W * 0.8, 'uib', int(c.W * float(e.o.get('size', 0.14)))))
+    y = min(max(c.H * 0.5, c.fy + c.fw * 1.55), c.H * 0.885 - size * 1.15 * len(lines))
     for j, ln in enumerate(lines):
         im = cached(e, ('l', j), lambda: text_img(ln, size, 'uib', red if j == 1 else (255, 255, 255), shadow=8))
         kk = clamp((c.lt - 0.18 - 0.13 * j) / 0.16)
-        if kk > 0: place(c, im, c.W * 0.05 + im.width / 2, y + im.height / 2, 1.4 - 0.4 * ease_out(kk), 0, kk * al, guard=True)
+        if kk > 0: place(c, im, c.W * 0.05 + im.width / 2, y + im.height / 2, 1.4 - 0.4 * ease_out(kk), 0, kk * al, guard=e.o.get('guard', '1') in ('1', 1, True))
         y += size * 1.0
     tag = cached(e, 'tag', lambda: text_img(e.o.get('tag', 'REC  ·  RED COLLAGE'), c.W * 0.027, 'mono', red))
     dot = Image.new('RGBA', (int(tag.height * 0.4),) * 2, (0, 0, 0, 0)); ImageDraw.Draw(dot).ellipse([0, 0, dot.width - 1, dot.width - 1], fill=red + (255,))
@@ -1140,7 +1140,7 @@ def fx_phone_fan(c, e):
     cy = min(cy, H - ph * 0.42)
     for i, o in enumerate((-1.5, -0.5, 0.5, 1.5)):
         q = ease_back((c.lt - 0.2 - 0.06 * i) / 0.4)
-        place(c, ph_[i], cx + o * W * 0.19 * q, cy + o * o * W * 0.025 * q, 0.9, -o * 11 * q, al * clamp((c.lt - 0.2) / 0.1), guard=True)
+        place(c, ph_[i], cx + o * W * 0.19 * q, cy + o * o * W * 0.025 * q, 0.9, -o * 11 * q, al * clamp((c.lt - 0.2) / 0.1), guard=e.o.get('guard', '0') in ('1', 1, True))
 
 
 @effect('dot-reveal', 'your shot builds itself out of glowing dots, then snaps into the full picture')
@@ -2151,7 +2151,7 @@ def fx_wave_trim(c, e):
 @effect('huge-strike', 'one huge serif word fills the wall behind you, then a red line crosses it out')
 def fx_huge_strike(c, e):
     al = fade(c, e)
-    t = cached(e, 't', lambda: fit_text(e.o.get('text', '8 HOURS'), c.W * 0.9, 'didone', int(c.W * 0.28), fill=CREAMY, shadow=10))
+    t = cached(e, 't', lambda: fit_text(e.o.get('text', '8 HOURS'), c.W * float(e.o.get('width', 0.8)), 'didone', int(c.W * 0.28), fill=CREAMY, shadow=10))
     cw = int(t.width * ease_out(c.lt / 0.35)); cy = above_head(c, t.height)
     if cw > 2: place(c, t.crop((0, 0, cw, t.height)), c.W / 2 - (t.width - cw) / 2, cy, 1, 0, al, behind=True)
     at = float(e.o.get('at', 0.6)); k = ease_out((c.lt - at) / 0.18)

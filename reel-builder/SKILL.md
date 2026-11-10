@@ -37,17 +37,18 @@ Copy `SK/examples/config.json` next to the clips and edit it. Ask the user for:
 - up to 8 clips for the end grid (`grid`, each with a label, a clip and the time of a good frame)
 - optional `more_label` like `+43 more effects`
 
-Keys you can set: `output`, `full_seconds`, `end_seconds`, `cold_open` (`effect`, `from`, `seconds`, `lines`; leave it out
+Keys you can set: `output`, `full_seconds`, `end_seconds`, `cold_open` (`effect`, `from`, `seconds`, `lines`, plus `y`, `gap`, `stagger` to place and pace the words; leave it out
 for no cold open), `effects[]` (`name`, `desc`, `raw`, `edited`, `offset`), `greeting`, `end_command`, `end_desc`,
-`cta_word`, `cta_pill`, `more_label`, `reply_line1`, `reply_line2`, `grid_title`, `grid_subtitle`, `grid[]` (`label`, `clip`, `t`).
+`cta_word`, `cta_pill`, `more_label`, `reply_line1`, `reply_line2`, `grid_title`, `grid_subtitle`, `grid_header`, `grid_footer`, `grid[]` (`label`, `clip`, `t`).
+The end grid plays each grid clip live (2.4s from `t`, ping-ponged), over a warm glow, then the comment keyword scales in with a shine.
 Paths are relative to the config file.
 
 ## 4. Check, then render
 
 1. `"PY" "SK/scripts/reel.py" config.json --info` prints the length.
 2. `"PY" "SK/scripts/reel.py" config.json --test 3.0 5.5 9.0 ...` saves `check_XX.XX.jpg` stills next to the config.
-   Check the start and the end of every full-screen window (cycle k starts at `cold_open.seconds + k * 4.2`,
-   full screen runs from +2.2 to +4.2). Look at them yourself. Adjust `offset` until every window ends on its payoff.
+   Check the start and the end of every full-screen window (cycle k starts at `cold_open.seconds + k * (2.2 + full_seconds)`,
+   full screen runs from +2.2 to +2.2 + `full_seconds`). Look at them yourself. Adjust `offset` until every window ends on its payoff.
 3. `"PY" "SK/scripts/reel.py" config.json` renders three files: the reel with typing sounds, a silent copy and
    the typing sounds as a WAV, so the user can mix their own music. Use `--crf 5` for the highest quality, `--jobs N`
    to use more CPU cores.
